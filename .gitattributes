@@ -44,5 +44,4 @@ CONTRIBUTING text
 #   git config filter.ascr.clean "git-ascr-filter --clean %f"
 #   git config filter.ascr.smudge "git-ascr-filter --smudge %f"
 
-*.scpt diff=scpt
 *.scpt filter=ascr
