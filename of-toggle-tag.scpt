@@ -1,10 +1,10 @@
--- =============================================================================
+-- ============================================================================
 -- @file    of-toggle-tag
--- @brief   Add or remove a tag from tasks
+-- @brief   Add or remove one or more tags from tasks
 -- @author  Michael Hucka <mhucka@caltech.edu>
 -- @license Please see the file LICENSE in the parent directory
 -- @repo    https://github.com/mhucka/omnifocus-hacks
--- =============================================================================
+-- ============================================================================
 
 -- Global variables and constants.
 -- ............................................................................
@@ -15,15 +15,16 @@ set tagsList to {"today", "soon"}
 -- Utility functions.
 -- ............................................................................
 
-on askUserForTag()
+on askUserForTags()
 	tell application "System Events"
 		activate
-		set theName to {choose from list tagsList with title "Toggle Tag" with prompt "Tag to toggle:"}
+		set selectedTags to {choose from list tagsList with title "Toggle Tags 🏷" with prompt "Tags to toggle:" with multiple selections allowed}
 	end tell
-	return item 1 of item 1 of theName
-end askUserForTag
+	-- We get back a list of lists. I don't know why. Return the inner one.
+	return item 1 of selectedTags
+end askUserForTags
 
--- This is based on code posted by user "RosemaryOrchard" here:
+-- The following is based on code posted by user "RosemaryOrchard" here:
 -- https://talk.automators.fm/t/running-into-problems-adding-a-tag-in-omnifocus-3-with-an-applescript/2227/2
 
 on tagObjectFromOF(theTagName)
@@ -61,7 +62,7 @@ end toggleTag
 -- Main body.
 -- ............................................................................
 
-set tagToToggle to my askUserForTag()
+set listOfTagsToToggle to my askUserForTags()
 
 tell application "OmniFocus"
 	activate
@@ -74,7 +75,10 @@ tell application "OmniFocus"
 	tell front document
 		repeat with i from 1 to count of selectedTasks
 			set theTask to the value of item i of selectedTasks
-			my toggleTag(theTask, tagToToggle)
+			repeat with i from 1 to count of listOfTagsToToggle
+				set theTagName to item i of listOfTagsToToggle
+				my toggleTag(theTask, theTagName)
+			end repeat
 		end repeat
 	end tell
 end tell
