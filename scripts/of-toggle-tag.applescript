@@ -1,10 +1,8 @@
-# =============================================================================
-# @file    of-toggle-tag
-# @brief   Add or remove one or more tags from OmniFocus tasks
-# @author  Michael Hucka <mhucka@caltech.edu>
-# @license Please see the file LICENSE in the parent directory
-# @repo    https://github.com/mhucka/omnifocus-hacks
-# =============================================================================
+# Summary: Add or remove one or more tags from OmniFocus tasks.
+#
+# Copyright 2024 Michael Hucka.
+# License: MIT license – see file "LICENSE" in the project website.
+# Website: https://github.com/mhucka/omnifocus-hacks
 
 # Global variables and constants.
 # .............................................................................
@@ -51,7 +49,7 @@ on toggleTag(theTask, theTagName)
 				return
 			end if
 		end repeat
-
+		
 		# If we get here, we didn't find the tag. Add it.
 		set theTag to my tagObjectFromOF(theTagName)
 		add theTag to tags of theTask
@@ -67,7 +65,7 @@ set listOfTagsToToggle to my askUserForTags()
 tell application "OmniFocus"
 	activate
 	delay 0.2
-
+	
 	tell front window
 		set selectedTrees to selected trees of content
 		set selectedTasks to every item of selectedTrees
@@ -82,4 +80,3 @@ tell application "OmniFocus"
 		end repeat
 	end tell
 end tell
-
