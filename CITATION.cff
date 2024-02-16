@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: If you use this software, please cite it as below.
+authors:
+  - family-names: Hucka
+    given-names: Michael
+    email: mhucka@caltech.edu
+    orcid: https://orcid.org/0000-0001-9105-5960
+title: omnifocus-hacks
+abstract: Mike's OmniFocus hacks.
+url: https://github.com/mhucka/omnifocus-hacks
+repository-code: https://github.com/mhucka/omnifocus-hacks
+license: MIT
+type: software
+keywords:
+  - software
+  - OmniFocus
+  - AppleScript
+  - macOS
+  - automation
