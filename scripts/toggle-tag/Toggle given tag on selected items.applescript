@@ -7,6 +7,10 @@
 #
 #    run script file scripts_file with parameters {"tagname"}
 #
+# To use it in Keyboard Maestro, use K.M.'s "execute AppleScript" action, use
+# the idiom above, and set the value of the tag name parameter right in the
+# text of the script of the action.
+#
 # Copyright 2024 Michael Hucka.
 # License: MIT license – see file "LICENSE" in the project website.
 # Website: https://github.com/mhucka/keyboard-maestro-hacks
@@ -66,7 +70,10 @@ end toggle_tag
 
 # Main body ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-on run {tag_name}
+# Toggle the named tag on all selected items. The tag name can be part of a
+# full tag name (which is useful if the tag contains emojis). If the tag name
+# parameter is an empty string, this will display a dialog to ask for the name.
+on run {tag_name as string}
 	if tag_name = ""
 		tell application "OmniFocus"
 			set answer to display dialog "Tag to toggle:" default answer "" ¬
