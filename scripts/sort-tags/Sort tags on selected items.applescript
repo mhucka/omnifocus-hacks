@@ -57,7 +57,19 @@ on get_tag_hierarchy()
 	end tell
 end get_tag_hierarchy
 
-# Takes a list of tags & returns a list sorted according to the tag hierarchy.
+# Return a list of all the names of the items in the given list.
+on get_names(item_list)
+	tell application "OmniFocus"
+		set name_list to {}
+		# Explicit loop because I couldn't get "name of every ..." to work.
+		repeat with this_item in every item of item_list
+			set end of name_list to name of this_item
+		end repeat
+		return name_list
+	end tell
+end get_names
+
+# Take a list of tags & returns a list sorted according to the tag hierarchy.
 on sort_tags(tag_list, tag_hierarchy)
 	tell application "OmniFocus"
 		set sorted_tags to {}
@@ -90,7 +102,7 @@ tell application "OmniFocus"
 			set current_tags to tags of this_item
 			if count of current_tags > 1 then
 				set sorted_tags to my sort_tags(current_tags, tag_order)
-				if sorted_tags ≠ current_tags then
+				if my get_names(sorted_tags) ≠ my get_names(current_tags) then
 					remove current_tags from tags of this_item
 					add sorted_tags to tags of this_item
 				end if
