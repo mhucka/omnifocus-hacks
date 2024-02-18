@@ -86,18 +86,16 @@ end sort_tags
 tell application "OmniFocus"
 	try
 		set tag_order to my get_tag_hierarchy()
-		tell front document
-			repeat with this_item in my get_selected_items()
-				set current_tags to tags of this_item
-				if count of current_tags > 1 then
-					set sorted_tags to my sort_tags(current_tags, tag_order)
-					if sorted_tags ≠ current_tags then
-						remove current_tags from tags of this_item
-						add sorted_tags to tags of this_item
-					end if
+		repeat with this_item in my get_selected_items()
+			set current_tags to tags of this_item
+			if count of current_tags > 1 then
+				set sorted_tags to my sort_tags(current_tags, tag_order)
+				if sorted_tags ≠ current_tags then
+					remove current_tags from tags of this_item
+					add sorted_tags to tags of this_item
 				end if
- 			end repeat
-		end tell
+			end if
+ 		end repeat
 	on error err_msg number err_code
 		set msg to err_msg & " (error code " & err_code & ")"
 		display dialog msg buttons {"OK"} ¬
