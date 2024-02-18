@@ -1,4 +1,5 @@
 # Summary: sort the tags of the currently-selected item(s).
+# "Items" in this context means actions or action groups.
 #
 # Copyright 2024 Michael Hucka.
 # License: MIT license – see file "LICENSE" in the project website.
@@ -10,6 +11,15 @@ use scripting additions
 
 # ~~~~ Helping hands ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+# Return the file name of *this* script as a string.
+on get_script_filename()
+    tell application "System Events"
+        set path_alias to path to me
+		return name of path_alias
+    end tell
+end get_script_filename
+
+# Return the currently selected tree(s) in OmniFocus.
 on get_selection()
 	tell application "OmniFocus"
 		tell front window
@@ -19,17 +29,18 @@ on get_selection()
 	end tell
 end get_selection
 
-on get_selected_actions()
+# Return the currently selected actions, as a list.
+on get_selected_items()
 	tell application "OmniFocus"
-		set actions to {}
+		set item_list to {}
 		repeat with selection in my get_selection()
 			if class of selection is not in {tag, perspective, folder} then
-				set end of actions to value of selection
+				set end of item_list to value of selection
 			end if
 		end repeat
-		return actions
+		return item_list
 	end tell
-end get_selected_actions
+end get_selected_items
 
 # Return a nested list of tags in the same order as in the tags perspective.
 # Warning: this is only designed to handle a 2-level tag hierarchy.
@@ -73,15 +84,24 @@ end sort_tags
 # ~~~~ Main body ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 tell application "OmniFocus"
-	set tag_order to my get_tag_hierarchy()
-	tell front document
-		repeat with action in my get_selected_actions()
-			set current_tags to tags of action
-			set sorted_tags to my sort_tags(current_tags, tag_order)
-			if sorted_tags ≠ current_tags then
-				remove current_tags from tags of action
-				add sorted_tags to tags of action
-			end if
- 		end repeat
-	end tell
+	try
+		set tag_order to my get_tag_hierarchy()
+		tell front document
+			repeat with this_item in my get_selected_items()
+				set current_tags to tags of this_item
+				if count of current_tags > 1 then
+					set sorted_tags to my sort_tags(current_tags, tag_order)
+					if sorted_tags ≠ current_tags then
+						remove current_tags from tags of this_item
+						add sorted_tags to tags of this_item
+					end if
+				end if
+ 			end repeat
+		end tell
+	on error err_msg number err_code
+		set msg to err_msg & " (error code " & err_code & ")"
+		display dialog msg buttons {"OK"} ¬
+			with title "Script '" & my get_script_filename() & "'" ¬
+			with icon 0 default button 1 giving up after 60
+	end try
 end tell
