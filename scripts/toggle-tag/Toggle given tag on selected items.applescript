@@ -5,11 +5,14 @@
 # the name) of the tag to toggle on the selected items. This allows it to be
 # invoked from the command line or other scripts using the idiom
 #
-#    run script file scripts_file with parameters {"tagname"}
+#    run script file SCRIPTFILE with parameters {"TAGNAME"}
 #
-# To use it in Keyboard Maestro, use K.M.'s "execute AppleScript" action, use
-# the idiom above, and set the value of the tag name parameter right in the
-# text of the script of the action.
+# where SCRIPTFILE is the full path to the compiled script and TAGNAME is
+# the name of the tag to be toggled.
+#
+# To use it in Keyboard Maestro, use K.M.'s "execute AppleScript" action and
+# the idiom above. Set the value of the tag name parameter right in the text
+# of the script of the action.
 #
 # Copyright 2024 Michael Hucka.
 # License: MIT license – see file "LICENSE" in the project website.
@@ -19,7 +22,7 @@ use AppleScript version "2.5" -- Yosemite (10.10) or later
 use scripting additions
 
 
-# Helper functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~ Helping hands ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # Return the file name of *this* script as a string.
 on get_script_filename()
@@ -68,11 +71,12 @@ on toggle_tag(_task, _tag)
 end toggle_tag
 
 
-# Main body ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~ Main body ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# Toggle the named tag on all selected items. The tag name can be part of a
-# full tag name (which is useful if the tag contains emojis). If the tag name
-# parameter is an empty string, this will display a dialog to ask for the name.
+# Toggle the tag named "tag_name" on all selected items. The name can be the
+# complete tag name or part of the name; the latter feature is useful if the
+# tag contains emojis. If the tag_name parameter is an empty string, this will
+# display a dialog to ask for the name.
 on run {tag_name as string}
 	if tag_name = ""
 		tell application "OmniFocus"
