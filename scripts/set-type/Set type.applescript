@@ -1,47 +1,92 @@
-# Summary: set the project type of the selected projects.
+# Summary: set the project type of the selected project, task, or group.
+#
+# This script takes one argument, a project type, in the form of a string
+# whose value should be one of "parallel", "sequential", or "single action"
+# (the latter can be "single" for short). The script sets the types of all
+# projects, groups, and/or tasks to the desired type, if possible. For items
+# that cannot be of the given type (e.g., non-project items can't be set to
+# single-action), it does nothing. For folders and tags, it also does nothing.
+#
+# The type name can be passed to the script in one of two ways:
+#
+# 1) By invoking the script using the idiom
+#        run script file SCRIPTFILE with parameters {"TYPE"}
+#    where SCRIPTFILE is the full path to the compiled script and TYPE is
+#    the name of type ("parallel", "sequential", or "single action").
+#
+# 2) By setting an environment variable named either "TypeName" or
+#    "KMVAR_TypeName" prior to running the script. The "KMVAR_TypeName" form
+#    is available to support running this script from Keyboard Maestro using
+#    its "Execute AppleScript" action. Use K.M.'s "Set variable to text"
+#    action before the "Execute AppleScript" action.
+#
+# If the script can't find a type name using one of the methods above, it
+# will display a dialog to ask for the type.
 #
 # Copyright 2024 Michael Hucka.
 # License: MIT license – see file "LICENSE" in the project website.
 # Website: https://github.com/mhucka/omnifocus-hacks
 
 use AppleScript version "2.5"
+use framework "Foundation"
 use scripting additions
+
+
+# ~~~~ Global constants ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+property ca: a reference to current application
+
 
 # ~~~~ Helping hands ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# Return the file name of *this* script as a string.
-on get_script_filename()
-	local path_alias
+# Return the given file name without its file name extension, if any.
+on remove_ext(file_name)
+	set f to ca's NSURL's fileURLWithPath:file_name
+	return f's URLByDeletingPathExtension()'s lastPathComponent() as text
+end remove_ext
+
+# Return the file name of this script as a string, minus the extension.
+on get_script_name()
     tell application "System Events"
         set path_alias to path to me
-		return name of path_alias
+		set file_name to name of path_alias
+		return my remove_ext(file_name)
     end tell
-end get_script_filename
+end get_script_name
+
+# Return true if the named application is running.
+on is_app_running(app_name)
+	tell application "System Events"
+		return (count of (every process whose name is "OmniFocus")) > 0
+	end tell
+end is_app_running
 
 # Return a list of item id's for the currently-selected items in OmniFocus.
 on get_selected_item_ids()
 	local item_links, item_ids, orig_delims
 
-	# There's a bug in the AppleScript interface of OmniFocus that has existed
-	# since at least 2008. The bug is this. If you select a task or group in
-	# the content window, then select the parent project in the sidebar, there
-	# is nothing in the available AppleScript objects that can be used to
-	# determine whether the actual highlighted selection is (a) the parent
-	# project in the sidebar or (b) the items in the content window. The
-	# property values of elements in "selected trees of" for both "content"
-	# and "sidebar" are absolutely the same in both cases. You can use the
-	# OmniFocus menu items "Go to outline" and "Go to "sidebar", go back and
-	# forth, and the objects returned by OmniFocus's AppleScript interface
-	# remain same each time. Thus, you can't tell what the user has truly
-	# selected. It's an exasperating problem because, obviously, OmniFocus
-	# itself knows what the user has selected. The following hack is a
-	# workaround. It gets the selected items using OmniFocus's menu item "Copy
-	# as Link", which doesn't suffer from the same problem. I don't like this,
-	# and I spent hours looking for a better way. This is the best I found.
+	# A bug in the OmniFocus AppleScript interface that has existed since at
+	# least 2008 is still present in version 4.0.5 today (in 2024). If you
+	# select a task in the content window, nothing in the AppleScript objects
+	# can be used to determine whether the actual highlighted selection is (a)
+	# the task in the content window or (b) the parent project in the sidebar.
+	# If you use "Go to sidebar" (from the OmniFocus user interface View
+	# menu), get both the "selected of sidebar" and "selected of content"
+	# objects via AppleScript, then use "Go to outline", get the AppleScript
+	# objects, and compare them, you'll find that the property values of the
+	# relevant objects are the same. The property that *should* distinguish
+	# them (a Boolean property named "selected" -- a confusing name in this
+	# context) always has the value false (as reported by user "davidamis" in
+	# 2008-05-29 at http://forums.omnigroup.com/showthread.php?p=37446). Thus,
+	# you can't tell what the user has truly selected. It's an exasperating
+	# problem because, obviously, OmniFocus itself knows what the user has
+	# selected. The following hack is a workaround. It gets the selected items
+	# using OmniFocus's menu item "Copy as Link", because it returns the true
+	# selections. I don't like this GUI scripting, but I spent many hours
+	# looking for a better way and this is the best alternative I found.
 
 	set item_links to {}
 	tell application "System Events"
-		set my_app to bundle identifier of first process whose frontmost is true
 		tell application process "OmniFocus"
 			# The menu item click won't take effect unless you set frontmost.
 			set frontmost to true
@@ -51,7 +96,6 @@ on get_selected_item_ids()
 			end tell
 			set item_links to paragraphs of (the clipboard as text)
 		end tell
-		activate application my_app
 	end tell
 
 	# Extract the item id's from the item links.
@@ -69,7 +113,7 @@ on get_selected_item_ids()
 	return item_ids
 end get_selected_item_ids
 
-# Given an id or an item link, return the object (task, group, or project).
+# Given an id or an item link for a task or project, return the object.
 on get_item(item_id)
 	tell application "OmniFocus"
 		tell default document
@@ -88,40 +132,36 @@ on get_item(item_id)
 end get_item
 
 # Set the type (parallel/sequential/single-action) of the item.
-on set_item_type(item_obj, desired_type)
+on set_item_type(item_id, desired_type)
+	set item_obj to my get_item(item_id)
 	tell application "OmniFocus"
 		set is_sequential to (sequential of item_obj)
-		# Projects can be single-action, but tasks & groups cannot. It would
-		# be annoying to show an error dialog if the user tried to set a
-		# task or group to single-action, so we just quietly ignore it.
+		set is_single to false
+		set can_be_single to false
+		# It's harder to test what kind of object we have, than to do this.
 		try
 			set is_single to (singleton action holder of item_obj)
+			set can_be_single to true
 		end try
 
-		if desired_type = "single" then
+		if desired_type = "single" and can_be_single then
 			if is_sequential then
 				set sequential of item_obj to false
 			end if
 			if not is_single then
-				try
-					set item_obj's singleton action holder to true
-				end try
+				set item_obj's singleton action holder to true
 			end if
 		else if desired_type = "sequential" then
-			if is_single then
-				try
-					set singleton action holder of item_obj to false
-				end try
+			if can_be_single and is_single then
+				set singleton action holder of item_obj to false
 			end if
 			if not is_sequential then
 				set sequential of item_obj to true
 			end if
 		else if desired_type = "parallel" then
 			# Parallel is the default if it's not sequential or single-action.
-			if is_single then
-				try
-					set singleton action holder of item_obj to false
-				end try
+			if can_be_single and is_single then
+				set singleton action holder of item_obj to false
 			end if
 			if is_sequential then
 				set sequential of item_obj to false
@@ -137,28 +177,26 @@ on run type_name
 	# We could launch OmniFocus if it's not running, but it doesn't make sense
 	# for the user to invoke this script if OmniFocus is not running, so this
 	# situation likely means something is wrong (e.g. running it accidentally).
-	tell application "System Events"
-		if count of (every process whose name is "OmniFocus") = 0 then
-			display dialog "OmniFocus is not running." buttons {"OK"} ¬
-				with title "Script '" & my get_script_filename() & "'" ¬
-				with icon 0 default button 1 giving up after 60
-			return
-		end if
-	end tell
+	if not my is_app_running("OmniFocus") then
+		display dialog "OmniFocus is not running." buttons {"OK"} ¬
+			with title "Script '" & my get_script_name() & "'" ¬
+			with icon 0 default button 1 giving up after 60
+		return
+	end if
 
-	# If the tag name was not passed as an argument, check the environment.
+	# If the type name was not passed as an argument, check environment vars.
 	if (type_name as string) = "" then
-		set type_name to system attribute "KMVAR_TagName"
+		set type_name to system attribute "KMVAR_TypeName"
 		if type_name = "" then
-			set type_name to system attribute "TagName"
+			set type_name to system attribute "TypeName"
 		end if
 	end if
 
-	# If we still don't have a tag name, ask the user for one.
+	# If we still don't have a type name, ask the user for one.
 	if type_name = "" then
 		tell application "OmniFocus"
 			set answer to display dialog "Desired type:" default answer "" ¬
-				with title my get_script_filename() with icon 1 ¬
+				with title my get_script_name() with icon 1 ¬
 				buttons {"OK", "Cancel"} ¬
 				default button "OK" cancel button "Cancel" ¬
 				giving up after 30
@@ -179,7 +217,7 @@ on run type_name
 			& " type. Please use one of the names \"parallel\", " ¬
 			& "\"sequential\", or \"single action\" (or just \"single\")."
 		display dialog msg buttons {"OK"} ¬
-			with title "Script '" & my get_script_filename() & "'" ¬
+			with title "Script '" & my get_script_name() & "'" ¬
 			with icon 0 default button 1 giving up after 60
 		return
 	end if
@@ -190,7 +228,14 @@ on run type_name
 	end if
 
 	# Finally, let's try to do what we came here for.
-	repeat with item_id in my get_selected_item_ids()
-		my set_item_type(my get_item(item_id), type_name)
-	end repeat
+	try
+		repeat with this_id in my get_selected_item_ids()
+			my set_item_type(this_id, type_name)
+		end repeat
+	on error err_msg number err_code
+		set msg to err_msg & " (error code " & err_code & ")"
+		display dialog msg buttons {"OK"} ¬
+			with title "Script '" & my get_script_name() & "'" ¬
+			with icon 0 default button 1 giving up after 60
+	end try
 end run
