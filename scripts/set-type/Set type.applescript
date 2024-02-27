@@ -28,21 +28,26 @@
 # Website: https://github.com/mhucka/omnifocus-hacks
 
 use AppleScript version "2.5"
-use framework "Foundation"
 use scripting additions
-
-
-# ~~~~ Global constants ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-property ca: a reference to current application
 
 
 # ~~~~ Helping hands ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+# Performance note: this script runs noticeably slower if "use framework
+# Foundation" is put at the top level than if it's used inside the (one)
+# handler it's needed below.
+
 # Return the given file name without its file name extension, if any.
 on remove_ext(file_name)
-	set f to ca's NSURL's fileURLWithPath:file_name
-	return f's URLByDeletingPathExtension()'s lastPathComponent() as text
+	script wrapperScript
+		property ca: a reference to current application
+		use framework "Foundation"
+		on remove_ext(file_name)
+			set u to ca's NSURL's fileURLWithPath:file_name
+			return u's URLByDeletingPathExtension()'s lastPathComponent() as text
+		end remove_ext
+	end script
+	return wrapperScript's remove_ext(file_name)
 end remove_ext
 
 # Return the file name of this script as a string, minus the extension.
