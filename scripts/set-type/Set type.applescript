@@ -1,10 +1,10 @@
-# Summary: set the project type of the selected project, task, or group.
+# Summary: set the project type of the selected project or task group.
 #
 # This script takes one argument, a project type, in the form of a string
 # whose value should be one of "parallel", "sequential", or "single action"
 # (the latter can be "single" for short). The script sets the types of all
-# projects, groups, and/or tasks to the desired type, if possible. For items
-# that cannot be of the given type (e.g., non-project items can't be set to
+# projects and/or task groups to the desired type, if possible. For items that
+# cannot be of the given type (e.g., non-project items can't be set to
 # single-action), it does nothing. For folders and tags, it also does nothing.
 #
 # The type name can be passed to the script in one of two ways:
@@ -58,6 +58,12 @@ on get_script_name()
 		return my remove_ext(file_name)
     end tell
 end get_script_name
+
+# Display a dialog telling user of an error during script execution.
+on display_error(msg)
+	display dialog msg buttons {"OK"} with title my get_script_name() ¬
+		with icon 0 giving up after 60
+end display_error
 
 # Return true if the named application is running.
 on is_app_running(app_name)
@@ -183,9 +189,7 @@ on run type_name
 	# for the user to invoke this script if OmniFocus is not running, so this
 	# situation likely means something is wrong (e.g. running it accidentally).
 	if not my is_app_running("OmniFocus") then
-		display dialog "OmniFocus is not running." buttons {"OK"} ¬
-			with title "Script '" & my get_script_name() & "'" ¬
-			with icon 0 default button 1 giving up after 60
+		my display_error("OmniFocus is not running.")
 		return
 	end if
 
@@ -217,9 +221,7 @@ on run type_name
 		set msg to "Unable to interpret \"" & type_name & "\" as a known " ¬
 			& " type. Please use one of the names \"parallel\", " ¬
 			& "\"sequential\", or \"single action\" (or just \"single\")."
-		display dialog msg buttons {"OK"} ¬
-			with title "Script '" & my get_script_name() & "'" ¬
-			with icon 0 default button 1 giving up after 60
+		my display_error(msg)
 		return
 	end if
 
@@ -235,8 +237,6 @@ on run type_name
 		end repeat
 	on error err_msg number err_code
 		set msg to err_msg & " (error code " & err_code & ")"
-		display dialog msg buttons {"OK"} ¬
-			with title "Script '" & my get_script_name() & "'" ¬
-			with icon 0 default button 1 giving up after 60
+		my display_error(msg)
 	end try
 end run
