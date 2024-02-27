@@ -206,7 +206,7 @@ on run type_name
 		tell application "OmniFocus"
 			set options to {"parallel", "sequential", "single action"}
 			choose from list options with prompt "Please choose the type:" ¬
-				with title my get_script_name() default items 1
+				with title my get_script_name() default items {"parallel"}
 			if result is not false then
 				set type_name to item 1 of result
 			else
