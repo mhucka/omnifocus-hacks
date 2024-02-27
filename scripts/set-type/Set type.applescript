@@ -200,17 +200,13 @@ on run type_name
 	# If we still don't have a type name, ask the user for one.
 	if type_name = "" then
 		tell application "OmniFocus"
-			set answer to display dialog "Desired type:" default answer "" ¬
-				with title my get_script_name() with icon 1 ¬
-				buttons {"OK", "Cancel"} ¬
-				default button "OK" cancel button "Cancel" ¬
-				giving up after 30
-			if button returned of answer = "Cancel" or type_name = "" then
-				return
-			else if gave up of result then
-				return
+			set options to {"parallel", "sequential", "single action"}
+			choose from list options with prompt "Please choose the type:" ¬
+				with title my get_script_name() default items 1
+			if result is not false then
+				set type_name to item 1 of result
 			else
-				set type_name to text returned of result
+				return
 			end if
 		end tell
 	end if
