@@ -18,7 +18,7 @@
 # License: MIT license – see file "LICENSE" in the project website.
 # Website: https://github.com/mhucka/keyboard-maestro-hacks
 
-use AppleScript version "2.5" -- Yosemite (10.10) or later
+use AppleScript version "2.5"
 use scripting additions
 
 
@@ -78,7 +78,7 @@ end toggle_tag
 # tag contains emojis. If the tag_name parameter is an empty string, this will
 # display a dialog to ask for the name.
 on run {tag_name as string}
-	if tag_name = ""
+	if tag_name = "" then
 		tell application "OmniFocus"
 			set answer to display dialog "Tag to toggle:" default answer "" ¬
 				with title my get_script_filename() with icon 1 ¬
@@ -86,6 +86,8 @@ on run {tag_name as string}
 				default button "OK" cancel button "Cancel" ¬
 				giving up after 30
 			if button returned of answer = "Cancel" or tag_name = "" then
+				return
+			else if gave up of result then
 				return
 			else
 				set tag_name to text returned of result
